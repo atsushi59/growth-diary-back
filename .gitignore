@@ -21,3 +21,4 @@ npm-debug.log*
 
 # SQLite（#16の名残。誤コミット防止）
 *.db
+.claude/
