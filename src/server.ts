@@ -1,10 +1,14 @@
 import "dotenv/config";
 import Fastify from "fastify";
+import { registerAuth } from "./auth/registerAuth.js";
 import childrenRoutes from "./routes/children.js";
 
 const fastify = Fastify({
   logger: true,
 });
+
+// 認証フックをグローバル適用（運用系を除く全エンドポイントをログイン必須にする）
+registerAuth(fastify);
 
 // ヘルスチェック（コンテナの起動確認に使う）
 fastify.get("/", async () => {
