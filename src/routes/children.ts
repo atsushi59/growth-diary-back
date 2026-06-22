@@ -2,13 +2,26 @@ import type { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../prisma.js";
 
-// 登録時にクライアントから受け取る入力の型
+// 登録時にクライアントから受け取る入力の型。
+// userId は受け取らない（認証済みの req.user から取る）。
 type CreateChildInput = {
-  userId: number;
   name: string;
   birthday: string; // JSONで届くので文字列
   gender: string;
 };
+
+/**
+ * Prisma の「対象レコードなし」(P2025) エラーかを判定する。
+ * update/delete が本人の子供にマッチしなかったケースを 404 に振り分けるために使う。
+ * @param error catch した例外
+ * @returns P2025 なら true
+ */
+function isRecordNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  );
+}
 
 const childrenRoutes: FastifyPluginAsync = async (fastify) => {
   // Create  POST /children
@@ -17,7 +30,7 @@ const childrenRoutes: FastifyPluginAsync = async (fastify) => {
 
     const child = await prisma.child.create({
       data: {
-        userId: body.userId,
+        userId: request.user.id,
         name: body.name,
         birthday: new Date(body.birthday),
         gender: body.gender,
@@ -27,9 +40,11 @@ const childrenRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send(child);
   });
 
-  // Read 一覧  GET /children
-  fastify.get("/", async (_request, reply) => {
-    const children = await prisma.child.findMany();
+  // Read 一覧  GET /children（本人の子供のみ）
+  fastify.get("/", async (request, reply) => {
+    const children = await prisma.child.findMany({
+      where: { userId: request.user.id },
+    });
     return reply.send(children);
   });
 
@@ -37,8 +52,8 @@ const childrenRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
     const { id } = request.params;
 
-    const child = await prisma.child.findUnique({
-      where: { id: parseInt(id) },
+    const child = await prisma.child.findFirst({
+      where: { id: parseInt(id), userId: request.user.id },
     });
 
     if (!child) {
@@ -53,12 +68,16 @@ const childrenRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params;
 
     try {
+      // where に userId も入れることで、本人の子供以外は削除できない（1クエリ）
       await prisma.child.delete({
-        where: { id: parseInt(id) },
+        where: { id: parseInt(id), userId: request.user.id },
       });
       return reply.send({ message: "Child deleted successfully" });
-    } catch {
-      return reply.code(404).send({ error: "Child not found" });
+    } catch (error) {
+      if (isRecordNotFoundError(error)) {
+        return reply.code(404).send({ error: "Child not found" });
+      }
+      throw error;
     }
   });
 
@@ -71,17 +90,19 @@ const childrenRoutes: FastifyPluginAsync = async (fastify) => {
 
       try {
         const updatedChild = await prisma.child.update({
-          where: { id: parseInt(id) },
+          where: { id: parseInt(id), userId: request.user.id },
           data: {
-            userId: body.userId,
             name: body.name,
             birthday: new Date(body.birthday),
             gender: body.gender,
           },
         });
         return reply.send(updatedChild);
-      } catch {
-        return reply.code(404).send({ error: "Child not found" });
+      } catch (error) {
+        if (isRecordNotFoundError(error)) {
+          return reply.code(404).send({ error: "Child not found" });
+        }
+        throw error;
       }
     }
   );
@@ -100,12 +121,15 @@ const childrenRoutes: FastifyPluginAsync = async (fastify) => {
 
       try {
         const updatedChild = await prisma.child.update({
-          where: { id: parseInt(id) },
+          where: { id: parseInt(id), userId: request.user.id },
           data,
         });
         return reply.send(updatedChild);
-      } catch {
-        return reply.code(404).send({ error: "Child not found" });
+      } catch (error) {
+        if (isRecordNotFoundError(error)) {
+          return reply.code(404).send({ error: "Child not found" });
+        }
+        throw error;
       }
     }
   );
