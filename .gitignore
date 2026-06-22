@@ -1,0 +1,23 @@
+# 依存パッケージ（巨大・再生成可能）
+node_modules/
+
+# ビルド成果物
+dist/
+
+# 環境変数（DB接続情報を含むので絶対にpushしない）
+.env
+.env.*
+!.env.example
+
+# Prisma が自動生成するクライアント（prisma generate で再生成可能）
+generated/
+
+# ログ・OS・エディタ
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/
+
+# SQLite（#16の名残。誤コミット防止）
+*.db

@@ -1,0 +1,37 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/growth_diary?schema=public"
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # ソースをマウントしてホットリロード（tsx watch が変更を検知）
+      - .:/app
+      # node_modules はコンテナ内のものを使う（ホストで上書きしない）
+      - /app/node_modules
+      - /app/generated
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: growth_diary
+    ports:
+      # ホストからGUIツール等で覗きたいとき用（任意）
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d growth_diary"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

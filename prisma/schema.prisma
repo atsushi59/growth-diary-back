@@ -1,0 +1,190 @@
+// growth-diary バックエンド DBスキーマ
+// テーブル名・カラム名は @@map / @map で snake_case に統一。
+// 接続URLは prisma.config.ts 側で管理（datasource には url を書かない）。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── ユーザー系 ──────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  children      Child[]
+  recipePosts   RecipePost[]
+  recipeComments RecipeComment[]
+  recipeLikes   RecipeLike[]
+
+  @@map("users")
+}
+
+model Child {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String
+  birthday  DateTime @db.Date
+  gender    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  growths             Growth[]
+  vaccinationRecords  VaccinationRecord[]
+  albums              Album[]
+  foodRecords         FoodRecord[]
+
+  @@index([userId])
+  @@map("children")
+}
+
+// ── 成長記録 ──────────────────────────────
+
+model Growth {
+  id         Int      @id @default(autoincrement())
+  childId    Int      @map("child_id")
+  height     Float?
+  weight     Float?
+  recordedAt DateTime @map("recorded_at")
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId])
+  @@map("growth")
+}
+
+// ── 予防接種 ──────────────────────────────
+
+model VaccineMaster {
+  id             Int     @id @default(autoincrement())
+  name           String
+  doseNumber     Int     @map("dose_number")
+  minStartMonth  Int     @map("min_start_month")
+  standardMonth  Int     @map("standard_month")
+  type           String
+  category       String
+
+  records VaccinationRecord[]
+
+  @@map("vaccine_master")
+}
+
+model VaccinationRecord {
+  id           Int      @id @default(autoincrement())
+  childId      Int      @map("child_id")
+  vaccineId    Int      @map("vaccine_id")
+  vaccinatedAt DateTime @map("vaccinated_at") @db.Date
+
+  child   Child         @relation(fields: [childId], references: [id], onDelete: Cascade)
+  vaccine VaccineMaster @relation(fields: [vaccineId], references: [id])
+
+  @@index([childId])
+  @@index([vaccineId])
+  @@map("vaccination_records")
+}
+
+// ── アルバム ──────────────────────────────
+
+model Album {
+  id        Int      @id @default(autoincrement())
+  childId   Int      @map("child_id")
+  image     String
+  message   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId])
+  @@map("albums")
+}
+
+// ── 離乳食 ──────────────────────────────
+
+model FoodMaster {
+  id         Int     @id @default(autoincrement())
+  name       String
+  startMonth Int     @map("start_month")
+  stage      String
+  category   String
+  note       String?
+
+  records FoodRecord[]
+
+  @@map("food_master")
+}
+
+model FoodRecord {
+  id       Int      @id @default(autoincrement())
+  childId  Int      @map("child_id")
+  foodId   Int      @map("food_id")
+  hasEaten Boolean  @default(false) @map("has_eaten")
+  eatenAt  DateTime? @map("eaten_at") @db.Date
+
+  child Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  food  FoodMaster @relation(fields: [foodId], references: [id])
+
+  @@index([childId])
+  @@index([foodId])
+  @@map("food_records")
+}
+
+// ── レシピ投稿（SNS）──────────────────────
+
+model RecipePost {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  title       String
+  description String?
+  image       String?
+  likesCount  Int      @default(0) @map("likes_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments RecipeComment[]
+  likes    RecipeLike[]
+
+  @@index([userId])
+  @@map("recipe_posts")
+}
+
+model RecipeComment {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  userId    Int      @map("user_id")
+  comment   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post RecipePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@map("recipe_comments")
+}
+
+model RecipeLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post RecipePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("recipe_likes")
+}
