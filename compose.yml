@@ -6,6 +6,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/growth_diary?schema=public"
       PORT: 3000
+      # ローカル開発はダミー認証（固定テストユーザー）
+      AUTH_MODE: dummy
     depends_on:
       db:
         condition: service_healthy
