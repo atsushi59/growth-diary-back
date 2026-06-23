@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../prisma.js";
 import { isRecordNotFoundError } from "../prismaError.js";
-import { verifyChildOwnership } from "./verifyChildOwnership.js";
+import { verifyChildOwnership } from "../auth/verifyChildOwnership.js";
 
 // 身長(cm)・体重(kg)の妥当性チェックに使う上限（ありえない値を弾く）
 const MAX_HEIGHT_CM = 300;

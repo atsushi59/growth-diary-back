@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { GrowthStandard } from "../../generated/prisma/client.js";
 import { prisma } from "../prisma.js";
-import { verifyChildOwnership } from "./verifyChildOwnership.js";
+import { verifyChildOwnership } from "../auth/verifyChildOwnership.js";
 
 // アプリ内に明記する出典表記
 const GROWTH_STANDARD_SOURCE = "出典: こども家庭庁「令和5年乳幼児身体発育調査」";
