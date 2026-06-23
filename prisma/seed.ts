@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { prisma } from "../src/prisma.js";
-import { DUMMY_USER } from "../src/auth/dummyUser.js";
+import { prisma } from "../src/plugins/prisma.js";
+import { DUMMY_USER } from "../src/config/dummyUser.js";
 
 type GrowthStandardSeed = {
   gender: string;

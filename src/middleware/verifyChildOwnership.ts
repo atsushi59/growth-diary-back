@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { Child } from "../../generated/prisma/client.js";
-import { prisma } from "../prisma.js";
+import { findChildByIdForUser } from "../repositories/children.repository.js";
 
 /**
  * URL の :childId が認証ユーザー本人の子供かを確認し、本人の子供なら返す。
@@ -16,9 +16,7 @@ export async function verifyChildOwnership(
 ): Promise<Child | null> {
   const childId = Number((request.params as { childId: string }).childId);
 
-  const child = await prisma.child.findFirst({
-    where: { id: childId, userId: request.user.id },
-  });
+  const child = await findChildByIdForUser(childId, request.user.id);
   if (!child) {
     reply.code(404).send({ error: "Child not found" });
     return null;

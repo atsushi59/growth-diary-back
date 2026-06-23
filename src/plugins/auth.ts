@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { authenticate, AuthError } from "./authenticate.js";
-import { AUTH_MODE_DUMMY, PUBLIC_PATHS } from "./constants.js";
+import { authenticate, AuthError } from "../middleware/authenticate.js";
+import { AUTH_MODE_DUMMY, PUBLIC_PATHS } from "../config/auth.js";
 
 /**
  * 全エンドポイントをログイン必須にする認証フックをグローバル適用する。
