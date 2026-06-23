@@ -63,6 +63,19 @@ model Growth {
   @@map("growth")
 }
 
+// 発育曲線マスタ（母子手帳と同じパーセンタイル帯。出典: こども家庭庁 令和5年乳幼児身体発育調査）
+model GrowthStandard {
+  id        Int    @id @default(autoincrement())
+  gender    String // "male" / "female"
+  ageMonths Int    @map("age_months") // 0〜72
+  metric    String // "height" / "weight"
+  min       Float // 下限（3パーセンタイル）
+  max       Float // 上限（97パーセンタイル）
+
+  @@unique([gender, ageMonths, metric])
+  @@map("growth_standards")
+}
+
 // ── 予防接種 ──────────────────────────────
 
 model VaccineMaster {
