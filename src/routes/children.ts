@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { Prisma } from "../../generated/prisma/client.js";
 import { prisma } from "../prisma.js";
+import { isRecordNotFoundError } from "../prismaError.js";
 
 // 登録時にクライアントから受け取る入力の型。
 // userId は受け取らない（認証済みの req.user から取る）。
@@ -9,19 +10,6 @@ type CreateChildInput = {
   birthday: string; // JSONで届くので文字列
   gender: string;
 };
-
-/**
- * Prisma の「対象レコードなし」(P2025) エラーかを判定する。
- * update/delete が本人の子供にマッチしなかったケースを 404 に振り分けるために使う。
- * @param error catch した例外
- * @returns P2025 なら true
- */
-function isRecordNotFoundError(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2025"
-  );
-}
 
 const childrenRoutes: FastifyPluginAsync = async (fastify) => {
   // Create  POST /children
