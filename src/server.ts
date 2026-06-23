@@ -2,6 +2,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { registerAuth } from "./auth/registerAuth.js";
 import childrenRoutes from "./routes/children.js";
+import growthRoutes from "./routes/growth.js";
+import growthStandardsRoutes from "./routes/growthStandards.js";
 
 const fastify = Fastify({
   logger: true,
@@ -22,7 +24,11 @@ fastify.get("/health", async () => {
 // ── テーブルごとのルートをプラグインとして登録 ──
 // 新しいテーブルを追加するときは routes/ にファイルを作り、ここに1行足す
 fastify.register(childrenRoutes, { prefix: "/children" });
-// fastify.register(growthRoutes, { prefix: "/growth" });
+// 成長記録・発育曲線マスタは child 配下にネスト（所有チェックを各ルートで通す）
+fastify.register(growthRoutes, { prefix: "/children/:childId/growth" });
+fastify.register(growthStandardsRoutes, {
+  prefix: "/children/:childId/growth-standards",
+});
 // fastify.register(usersRoutes, { prefix: "/users" });
 
 // サーバー起動
