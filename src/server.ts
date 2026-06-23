@@ -1,9 +1,9 @@
 import "dotenv/config";
 import Fastify from "fastify";
-import { registerAuth } from "./auth/registerAuth.js";
-import childrenRoutes from "./routes/children.js";
-import growthRoutes from "./routes/growth.js";
-import growthStandardsRoutes from "./routes/growthStandards.js";
+import { registerAuth } from "./plugins/auth.js";
+import childrenRoutes from "./routes/children.route.js";
+import growthRoutes from "./routes/growth.route.js";
+import growthStandardsRoutes from "./routes/growthStandards.route.js";
 
 const fastify = Fastify({
   logger: true,

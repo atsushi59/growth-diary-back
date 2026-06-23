@@ -1,4 +1,4 @@
-import { Prisma } from "../generated/prisma/client.js";
+import { Prisma } from "../../generated/prisma/client.js";
 
 /**
  * Prisma の「対象レコードなし」(P2025) エラーかを判定する。
