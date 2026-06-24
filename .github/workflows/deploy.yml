@@ -4,13 +4,27 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write # OIDC認証に必要
-  contents: read
-
 jobs:
-  deploy:
+  # まずテストを実行（DynamoDB Local は testcontainers が起動。ubuntu-latest は Docker 利用可）
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  # テスト成功時のみデプロイ（needs: test がゲート）
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC認証に必要
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/setup-sam@v2
