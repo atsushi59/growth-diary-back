@@ -1,8 +1,12 @@
+import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuth } from "./plugins/auth.js";
 import childrenRoutes from "./routes/children.route.js";
 import growthRoutes from "./routes/growth.route.js";
 import growthStandardsRoutes from "./routes/growthStandards.route.js";
+
+// ローカル開発のフロント（Vite）のオリジン。本番ドメインの許可は #25 で対応する。
+const LOCAL_FRONTEND_ORIGIN = "http://localhost:5173";
 
 /**
  * Fastify アプリを組み立てて返す（listen はしない）。
@@ -12,6 +16,10 @@ import growthStandardsRoutes from "./routes/growthStandards.route.js";
  */
 export function buildApp(options: { logger?: boolean } = {}): FastifyInstance {
   const fastify = Fastify({ logger: options.logger ?? true });
+
+  // CORS は認証フック・ルートより先に登録する。
+  // プリフライト（OPTIONS）が認証で弾かれず、エラー応答にも CORS ヘッダが付くようにするため。
+  fastify.register(cors, { origin: LOCAL_FRONTEND_ORIGIN });
 
   // 認証フックをグローバル適用（運用系を除く全エンドポイントをログイン必須にする）
   registerAuth(fastify);
