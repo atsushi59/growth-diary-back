@@ -24,3 +24,6 @@ npm-debug.log*
 # SQLite（#16の名残。誤コミット防止）
 *.db
 .claude/
+
+# Docker Compose のローカル専用オーバーライド（本番 Cognito 検証など個人環境用）
+compose.override.yml
