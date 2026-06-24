@@ -101,6 +101,10 @@ Resources:
             Ref: GrowthTable
           GROWTH_STANDARDS_TABLE:
             Ref: GrowthStandardsTable
+          COGNITO_USER_POOL_ID:
+            Ref: CognitoUserPool
+          COGNITO_CLIENT_ID:
+            Ref: CognitoUserPoolClient
       Policies:
         - DynamoDBCrudPolicy:
             TableName:
@@ -129,8 +133,46 @@ Resources:
         EntryPoints:
           - src/lambda.ts
 
+  # ------------------------------------------------------------
+  # Cognito ユーザープール
+  # ------------------------------------------------------------
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: growth-diary-user-pool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: growth-diary-app-client
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false # フロントエンド（SPA）から直接通信するため false が必須
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+
 Outputs:
   ApiUrl:
     Description: "API Gateway endpoint URL"
     Value:
       Fn::Sub: "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value:
+      Ref: CognitoUserPool
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value:
+      Ref: CognitoUserPoolClient
