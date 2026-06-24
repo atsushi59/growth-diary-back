@@ -3,6 +3,8 @@ node_modules/
 
 # ビルド成果物
 dist/
+# SAM のビルド成果物（sam build で再生成可能）
+.aws-sam/
 
 # 環境変数（DB接続情報を含むので絶対にpushしない）
 .env
