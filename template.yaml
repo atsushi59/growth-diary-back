@@ -7,6 +7,10 @@ Parameters:
     Type: String
     Default: dummy
     Description: Authentication mode (e.g., dummy, cognito)
+  AllowedOrigin:
+    Type: String
+    Default: http://localhost:5173
+    Description: Allowed origin for the images bucket CORS (frontend direct upload)
 
 Resources:
   # ------------------------------------------------------------
@@ -77,6 +81,38 @@ Resources:
           KeyType: RANGE
 
   # ------------------------------------------------------------
+  # S3 バケット（画像保存。フロントから署名付き URL で直接アップロード）
+  # ------------------------------------------------------------
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub growth-diary-images-${AWS::AccountId}
+      # 完全非公開。閲覧・アップロードは Lambda 発行の署名付き URL 経由のみ
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # フロントからの直接 PUT（アップロード）/ GET（表示）を許可する
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref AllowedOrigin
+            AllowedMethods:
+              - GET
+              - PUT
+              - HEAD
+            AllowedHeaders:
+              - "*"
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3000
+
+  # ------------------------------------------------------------
   # Lambda 関数 & API Gateway
   # ------------------------------------------------------------
   FastifyApiFunction:
@@ -105,6 +141,8 @@ Resources:
             Ref: CognitoUserPool
           COGNITO_CLIENT_ID:
             Ref: CognitoUserPoolClient
+          IMAGES_BUCKET:
+            Ref: ImagesBucket
       Policies:
         - DynamoDBCrudPolicy:
             TableName:
@@ -118,6 +156,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               Ref: GrowthStandardsTable
+        # 署名付き URL 発行のため、画像バケットへの読み書き権限を付与
+        - S3CrudPolicy:
+            BucketName:
+              Ref: ImagesBucket
       Events:
         ApiEvent:
           Type: Api
@@ -176,3 +218,7 @@ Outputs:
     Description: "Cognito User Pool Client ID"
     Value:
       Ref: CognitoUserPoolClient
+  ImagesBucketName:
+    Description: "S3 bucket name for images"
+    Value:
+      Ref: ImagesBucket
