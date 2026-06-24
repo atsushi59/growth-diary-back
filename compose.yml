@@ -4,36 +4,37 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "postgresql://postgres:postgres@db:5432/growth_diary?schema=public"
       PORT: 3000
       # ローカル開発はダミー認証（固定テストユーザー）
       AUTH_MODE: dummy
+      # ローカルは DynamoDB Local に接続（SDK は region と credentials を要求するのでダミーを渡す）
+      DYNAMODB_ENDPOINT: "http://dynamodb-local:8000"
+      AWS_REGION: ap-northeast-1
+      AWS_ACCESS_KEY_ID: dummy
+      AWS_SECRET_ACCESS_KEY: dummy
+      USERS_TABLE: Users
+      CHILDREN_TABLE: Children
+      GROWTH_TABLE: Growth
+      GROWTH_STANDARDS_TABLE: GrowthStandards
     depends_on:
-      db:
-        condition: service_healthy
+      - dynamodb-local
     volumes:
       # ソースをマウントしてホットリロード（tsx watch が変更を検知）
       - .:/app
       # node_modules はコンテナ内のものを使う（ホストで上書きしない）
       - /app/node_modules
-      - /app/generated
 
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: growth_diary
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    # 名前付きボリュームへ書き込むため root で実行（権限エラー回避）
+    user: root
     ports:
-      # ホストからGUIツール等で覗きたいとき用（任意）
-      - "5432:5432"
+      # ホストから AWS CLI 等で覗きたいとき用（任意）
+      - "8000:8000"
+    # -dbPath で永続化（コンテナ再起動でもテーブル・データが残る）
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d growth_diary"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - dynamodb-data:/home/dynamodblocal/data
 
 volumes:
-  pgdata:
+  dynamodb-data:

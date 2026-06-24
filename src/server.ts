@@ -16,4 +16,7 @@ const start = async () => {
   }
 };
 
-start();
+// AWS Lambda 環境以外の場合のみ、常駐サーバーを起動する
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  start();
+}

@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: growth-diary-back SAM Template (Fastify + Lambda + DynamoDB)
+
+Parameters:
+  AuthMode:
+    Type: String
+    Default: dummy
+    Description: Authentication mode (e.g., dummy, cognito)
+
+Resources:
+  # ------------------------------------------------------------
+  # DynamoDB テーブル（1エンティティ1テーブル）
+  # ------------------------------------------------------------
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: cognitoSub
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cognitoSub
+          KeyType: HASH
+
+  ChildrenTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: id
+          KeyType: RANGE
+
+  GrowthTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: childId
+          AttributeType: S
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: childId
+          KeyType: HASH
+        - AttributeName: id
+          KeyType: RANGE
+
+  GrowthStandardsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: gender
+          AttributeType: S
+        - AttributeName: metricAge
+          AttributeType: S
+      KeySchema:
+        - AttributeName: gender
+          KeyType: HASH
+        - AttributeName: metricAge
+          KeyType: RANGE
+
+  # ------------------------------------------------------------
+  # Lambda 関数 & API Gateway
+  # ------------------------------------------------------------
+  FastifyApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: lambda.handler
+      Runtime: nodejs22.x
+      Architectures:
+        - x86_64
+      Timeout: 10
+      MemorySize: 512
+      Environment:
+        Variables:
+          AUTH_MODE:
+            Ref: AuthMode
+          USERS_TABLE:
+            Ref: UsersTable
+          CHILDREN_TABLE:
+            Ref: ChildrenTable
+          GROWTH_TABLE:
+            Ref: GrowthTable
+          GROWTH_STANDARDS_TABLE:
+            Ref: GrowthStandardsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: UsersTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: ChildrenTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: GrowthTable
+        - DynamoDBCrudPolicy:
+            TableName:
+              Ref: GrowthStandardsTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2022"
+        Sourcemap: true
+        EntryPoints:
+          - src/lambda.ts
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value:
+      Fn::Sub: "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

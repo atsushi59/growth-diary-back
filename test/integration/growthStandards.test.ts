@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
-import { prisma } from "../../src/plugins/prisma.js";
-import { createOtherUsersChild } from "../support/helpers.js";
+import {
+  clearChildrenAndGrowth,
+  createOtherUsersChild,
+} from "../support/helpers.js";
 
 let app: FastifyInstance;
-let childId: number;
+let childId: string;
 
 beforeAll(async () => {
   app = buildApp({ logger: false });
@@ -14,11 +16,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
-  await prisma.$disconnect();
 });
 
 beforeEach(async () => {
-  await prisma.child.deleteMany();
+  await clearChildrenAndGrowth();
   // 性別 male の子供を用意（seed のマスタは male/female 両方ある）
   const child = await app.inject({
     method: "POST",

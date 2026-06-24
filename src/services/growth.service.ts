@@ -1,4 +1,3 @@
-import type { Prisma } from "../../generated/prisma/client.js";
 import { MAX_HEIGHT_CM, MAX_WEIGHT_KG } from "../config/growth.js";
 import * as growthRepository from "../repositories/growth.repository.js";
 
@@ -84,7 +83,7 @@ export function validatePartialInput(body: Partial<GrowthInput>): string | null 
  * @param childId 子供の id
  * @returns growth レコードの配列（古い順）
  */
-export function listGrowths(childId: number) {
+export function listGrowths(childId: string) {
   return growthRepository.findGrowthsByChild(childId);
 }
 
@@ -94,12 +93,12 @@ export function listGrowths(childId: number) {
  * @param input 作成する成長記録の入力
  * @returns 作成した growth レコード
  */
-export function createGrowth(childId: number, input: GrowthInput) {
+export function createGrowth(childId: string, input: GrowthInput) {
   return growthRepository.createGrowth({
     childId,
     height: input.height ?? null,
     weight: input.weight ?? null,
-    recordedAt: new Date(input.recordedAt),
+    recordedAt: input.recordedAt,
   });
 }
 
@@ -111,14 +110,14 @@ export function createGrowth(childId: number, input: GrowthInput) {
  * @returns 更新後の growth レコード
  */
 export function replaceGrowth(
-  growthId: number,
-  childId: number,
+  growthId: string,
+  childId: string,
   input: GrowthInput
 ) {
   return growthRepository.updateGrowthForChild(growthId, childId, {
     height: input.height ?? null,
     weight: input.weight ?? null,
-    recordedAt: new Date(input.recordedAt),
+    recordedAt: input.recordedAt,
   });
 }
 
@@ -130,16 +129,14 @@ export function replaceGrowth(
  * @returns 更新後の growth レコード
  */
 export function updateGrowth(
-  growthId: number,
-  childId: number,
+  growthId: string,
+  childId: string,
   input: Partial<GrowthInput>
 ) {
-  const data: Prisma.GrowthUpdateInput = {};
+  const data: { height?: number | null; weight?: number | null; recordedAt?: string } = {};
   if (input.height !== undefined) data.height = input.height;
   if (input.weight !== undefined) data.weight = input.weight;
-  if (input.recordedAt !== undefined) {
-    data.recordedAt = new Date(input.recordedAt);
-  }
+  if (input.recordedAt !== undefined) data.recordedAt = input.recordedAt;
 
   return growthRepository.updateGrowthForChild(growthId, childId, data);
 }
@@ -149,6 +146,6 @@ export function updateGrowth(
  * @param growthId 成長記録の id
  * @param childId 対象の子供の id
  */
-export function deleteGrowth(growthId: number, childId: number) {
+export function deleteGrowth(growthId: string, childId: string) {
   return growthRepository.deleteGrowthForChild(growthId, childId);
 }

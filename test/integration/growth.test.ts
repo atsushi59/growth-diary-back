@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
-import { prisma } from "../../src/plugins/prisma.js";
-import { createOtherUsersChild } from "../support/helpers.js";
+import {
+  clearChildrenAndGrowth,
+  createOtherUsersChild,
+} from "../support/helpers.js";
 
 let app: FastifyInstance;
-let childId: number;
+let childId: string;
 
 /** テスト対象の成長記録を1件作成して body を返すヘルパー。 */
 async function createGrowth(payload: Record<string, unknown>) {
@@ -24,11 +26,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
-  await prisma.$disconnect();
 });
 
 beforeEach(async () => {
-  await prisma.child.deleteMany();
+  await clearChildrenAndGrowth();
   // 各テストで使う子供を1件用意する
   const child = await app.inject({
     method: "POST",

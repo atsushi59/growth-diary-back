@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
-import { prisma } from "../../src/plugins/prisma.js";
-import { createOtherUsersChild } from "../support/helpers.js";
+import {
+  clearChildrenAndGrowth,
+  createOtherUsersChild,
+} from "../support/helpers.js";
 
 let app: FastifyInstance;
 
@@ -23,12 +25,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
-  await prisma.$disconnect();
 });
 
 beforeEach(async () => {
-  // 子供を消すと growth 等も cascade で消える。マスタとユーザーは残す。
-  await prisma.child.deleteMany();
+  // children と growth を全削除して各テストを独立させる。マスタとユーザーは残す。
+  await clearChildrenAndGrowth();
 });
 
 describe("children CRUD API", () => {
@@ -42,7 +43,7 @@ describe("children CRUD API", () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body).toMatchObject({ name: "そうた", gender: "male" });
-    expect(body.id).toBeTypeOf("number");
+    expect(body.id).toBeTypeOf("string");
   });
 
   it("GET /children → 本人の子供一覧を返す", async () => {

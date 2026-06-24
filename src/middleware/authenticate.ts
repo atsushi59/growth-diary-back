@@ -1,5 +1,5 @@
 import type { FastifyRequest } from "fastify";
-import type { User } from "../../generated/prisma/client.js";
+import type { User } from "../types/models.js";
 import { AUTH_MODE_DUMMY } from "../config/auth.js";
 import { DUMMY_USER } from "../config/dummyUser.js";
 import { upsertUserByCognitoSub } from "../repositories/users.repository.js";
