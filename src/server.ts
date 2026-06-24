@@ -9,6 +9,8 @@ const fastify = Fastify({
   logger: true,
 });
 
+export default fastify;
+
 // 認証フックをグローバル適用（運用系を除く全エンドポイントをログイン必須にする）
 registerAuth(fastify);
 
@@ -44,4 +46,7 @@ const start = async () => {
   }
 };
 
-start();
+// AWS Lambda環境以外の場合のみ、常駐サーバーを起動する
+if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  start();
+}
