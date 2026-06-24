@@ -1,0 +1,13 @@
+version = 0.1
+
+# sam deploy のデフォルト設定（--guided を使わず非対話でデプロイできるようにする）。
+# GitHub Actions の自動デプロイもこの設定を参照する。
+[default.deploy.parameters]
+stack_name = "growth-diary-back"
+region = "ap-northeast-1"
+# 成果物用 S3 バケットを SAM が自動で用意・管理する（手動作成不要）
+resolve_s3 = true
+# Lambda 実行ロール等の IAM 作成を許可する
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+parameter_overrides = "AuthMode=dummy"
