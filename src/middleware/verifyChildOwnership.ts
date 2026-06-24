@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { Child } from "../../generated/prisma/client.js";
+import type { Child } from "../types/models.js";
 import { findChildByIdForUser } from "../repositories/children.repository.js";
 
 /**
@@ -14,9 +14,9 @@ export async function verifyChildOwnership(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<Child | null> {
-  const childId = Number((request.params as { childId: string }).childId);
+  const childId = (request.params as { childId: string }).childId;
 
-  const child = await findChildByIdForUser(childId, request.user.id);
+  const child = await findChildByIdForUser(childId, request.user.cognitoSub);
   if (!child) {
     reply.code(404).send({ error: "Child not found" });
     return null;

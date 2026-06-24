@@ -1,4 +1,4 @@
-import type { GrowthStandard } from "../../generated/prisma/client.js";
+import type { GrowthStandard } from "../types/models.js";
 import { GROWTH_STANDARD_SOURCE } from "../config/growth.js";
 import * as growthStandardsRepository from "../repositories/growthStandards.repository.js";
 

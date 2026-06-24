@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync } from "fastify";
-import { isRecordNotFoundError } from "../utils/prismaError.js";
 import { verifyChildOwnership } from "../middleware/verifyChildOwnership.js";
 import * as growthService from "../services/growth.service.js";
 import type { GrowthInput } from "../services/growth.service.js";
@@ -36,19 +35,15 @@ const growthRoutes: FastifyPluginAsync = async (fastify) => {
       const error = growthService.validateFullInput(request.body);
       if (error) return reply.code(400).send({ error });
 
-      try {
-        const growth = await growthService.replaceGrowth(
-          Number(request.params.id),
-          child.id,
-          request.body
-        );
-        return reply.send(growth);
-      } catch (caughtError) {
-        if (isRecordNotFoundError(caughtError)) {
-          return reply.code(404).send({ error: "Growth not found" });
-        }
-        throw caughtError;
+      const growth = await growthService.replaceGrowth(
+        request.params.id,
+        child.id,
+        request.body
+      );
+      if (!growth) {
+        return reply.code(404).send({ error: "Growth not found" });
       }
+      return reply.send(growth);
     }
   );
 
@@ -63,19 +58,15 @@ const growthRoutes: FastifyPluginAsync = async (fastify) => {
     const error = growthService.validatePartialInput(request.body);
     if (error) return reply.code(400).send({ error });
 
-    try {
-      const growth = await growthService.updateGrowth(
-        Number(request.params.id),
-        child.id,
-        request.body
-      );
-      return reply.send(growth);
-    } catch (caughtError) {
-      if (isRecordNotFoundError(caughtError)) {
-        return reply.code(404).send({ error: "Growth not found" });
-      }
-      throw caughtError;
+    const growth = await growthService.updateGrowth(
+      request.params.id,
+      child.id,
+      request.body
+    );
+    if (!growth) {
+      return reply.code(404).send({ error: "Growth not found" });
     }
+    return reply.send(growth);
   });
 
   // Delete  DELETE /children/:childId/growth/:id
@@ -85,15 +76,14 @@ const growthRoutes: FastifyPluginAsync = async (fastify) => {
       const child = await verifyChildOwnership(request, reply);
       if (!child) return reply;
 
-      try {
-        await growthService.deleteGrowth(Number(request.params.id), child.id);
-        return reply.send({ message: "Growth deleted successfully" });
-      } catch (caughtError) {
-        if (isRecordNotFoundError(caughtError)) {
-          return reply.code(404).send({ error: "Growth not found" });
-        }
-        throw caughtError;
+      const deleted = await growthService.deleteGrowth(
+        request.params.id,
+        child.id
+      );
+      if (!deleted) {
+        return reply.code(404).send({ error: "Growth not found" });
       }
+      return reply.send({ message: "Growth deleted successfully" });
     }
   );
 };
