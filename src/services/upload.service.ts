@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { IMAGES_BUCKET } from "../config/s3.js";
 import { s3 } from "../plugins/s3.js";
@@ -60,4 +60,12 @@ export async function createImageUploadUrl(
   });
 
   return { uploadUrl, key, expiresIn: UPLOAD_URL_EXPIRES_IN };
+}
+
+/**
+ * S3 オブジェクトを削除する。
+ * @param key 削除するオブジェクトキー
+ */
+export async function deleteImage(key: string): Promise<void> {
+  await s3.send(new DeleteObjectCommand({ Bucket: IMAGES_BUCKET, Key: key }));
 }

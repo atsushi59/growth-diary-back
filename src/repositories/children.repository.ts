@@ -21,6 +21,7 @@ export async function createChild(input: {
   name: string;
   birthday: string;
   gender: string;
+  image?: string;
 }): Promise<Child> {
   const now = new Date().toISOString();
   const child: Child = {
@@ -29,6 +30,7 @@ export async function createChild(input: {
     name: input.name,
     birthday: input.birthday,
     gender: input.gender,
+    image: input.image, // undefined は marshallOptions の removeUndefinedValues で除外される
     createdAt: now,
     updatedAt: now,
   };
@@ -74,17 +76,16 @@ export async function findChildByIdForUser(
  * @param id 子供の id
  * @param userId 所有ユーザーの cognitoSub
  * @param data 更新するフィールド（渡されたものだけ更新）
- * @returns 更新後の子供。対象が無ければ null
+ * 更新後の子供と、更新前の image（差し替え時の S3 後始末用）を返す。
+ * @returns { child: 更新後の子供, previousImage: 更新前の image }。対象が無ければ null
  */
 export async function updateChildForUser(
   id: string,
   userId: string,
-  data: { name?: string; birthday?: string; gender?: string }
-): Promise<Child | null> {
-  const fields: Record<string, unknown> = {
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
+  data: { name?: string; birthday?: string; gender?: string; image?: string }
+): Promise<{ child: Child; previousImage?: string } | null> {
+  const updatedAt = new Date().toISOString();
+  const fields: Record<string, unknown> = { ...data, updatedAt };
   const names: Record<string, string> = {};
   const values: Record<string, unknown> = {};
   const assignments: string[] = [];
@@ -96,6 +97,7 @@ export async function updateChildForUser(
   });
 
   try {
+    // ALL_OLD で更新前の状態を取得し、旧 image をアトミックに得る（別途 GET 不要・競合窓も無い）
     const result = await ddb.send(
       new UpdateCommand({
         TableName: TABLES.children,
@@ -104,10 +106,19 @@ export async function updateChildForUser(
         ConditionExpression: "attribute_exists(id)", // 無ければ失敗 → 404
         ExpressionAttributeNames: names,
         ExpressionAttributeValues: values,
-        ReturnValues: "ALL_NEW",
+        ReturnValues: "ALL_OLD",
       })
     );
-    return result.Attributes as Child;
+    const previous = result.Attributes as Child | undefined;
+    if (!previous) return null;
+
+    // 更新後の姿 = 旧アイテムに今回 SET した値（undefined を除く）を上書き
+    const child = { ...previous } as Child;
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value !== undefined) (child as Record<string, unknown>)[key] = value;
+    });
+
+    return { child, previousImage: previous.image };
   } catch (error) {
     if (isConditionalCheckFailed(error)) return null;
     throw error;
@@ -115,26 +126,28 @@ export async function updateChildForUser(
 }
 
 /**
- * 本人の子供を削除する。対象が無ければ false を返す。
+ * 本人の子供を削除する。対象が無ければ null を返す。
+ * 削除した子供（画像キーの後始末などに使う）を返す。
  * @param id 子供の id
  * @param userId 所有ユーザーの cognitoSub
- * @returns 削除できたら true、対象が無ければ false
+ * @returns 削除した子供。対象が無ければ null
  */
 export async function deleteChildForUser(
   id: string,
   userId: string
-): Promise<boolean> {
+): Promise<Child | null> {
   try {
-    await ddb.send(
+    const result = await ddb.send(
       new DeleteCommand({
         TableName: TABLES.children,
         Key: { userId, id },
         ConditionExpression: "attribute_exists(id)",
+        ReturnValues: "ALL_OLD",
       })
     );
-    return true;
+    return (result.Attributes as Child) ?? null;
   } catch (error) {
-    if (isConditionalCheckFailed(error)) return false;
+    if (isConditionalCheckFailed(error)) return null;
     throw error;
   }
 }

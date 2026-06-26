@@ -125,6 +125,53 @@ describe("children CRUD API", () => {
     expect(again.statusCode).toBe(404);
   });
 
+  describe("画像（image フィールド）", () => {
+    it("POST で image（S3キー）を保存し、GET で返す", async () => {
+      const key = "children/x/abc.jpg";
+      const created = await app.inject({
+        method: "POST",
+        url: "/children",
+        payload: { name: "I", birthday: "2024-01-01", gender: "male", image: key },
+      });
+      expect(created.statusCode).toBe(201);
+      expect(created.json().image).toBe(key);
+
+      const got = await app.inject({
+        method: "GET",
+        url: `/children/${created.json().id}`,
+      });
+      expect(got.json().image).toBe(key);
+    });
+
+    it("image 未指定なら image は持たない", async () => {
+      const child = await createChild({
+        name: "J",
+        birthday: "2024-01-01",
+        gender: "female",
+      });
+      expect(child.image).toBeUndefined();
+    });
+
+    it("PATCH で image だけ後付けできる", async () => {
+      const child = await createChild({
+        name: "K",
+        birthday: "2024-01-01",
+        gender: "male",
+      });
+
+      const key = "children/k/photo.png";
+      const res = await app.inject({
+        method: "PATCH",
+        url: `/children/${child.id}`,
+        payload: { image: key },
+      });
+
+      expect(res.statusCode).toBe(200);
+      // image は追加、name は元のまま
+      expect(res.json()).toMatchObject({ name: "K", image: key });
+    });
+  });
+
   describe("所有権（他人の子は触れない）", () => {
     it("一覧に他人の子は含まれない", async () => {
       await createOtherUsersChild();

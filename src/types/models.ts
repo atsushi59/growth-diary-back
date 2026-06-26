@@ -16,6 +16,7 @@ export type Child = {
   name: string;
   birthday: string;
   gender: string;
+  image?: string; // S3 オブジェクトキー（#70 でアップロードした画像）。未設定可。
   createdAt: string;
   updatedAt: string;
 };
