@@ -4,6 +4,7 @@ import { registerAuth } from "./plugins/auth.js";
 import childrenRoutes from "./routes/children.route.js";
 import growthRoutes from "./routes/growth.route.js";
 import growthStandardsRoutes from "./routes/growthStandards.route.js";
+import uploadsRoutes from "./routes/uploads.route.js";
 
 // ローカル開発のフロント（Vite）のオリジン。本番ドメインの許可は #25 で対応する。
 const LOCAL_FRONTEND_ORIGIN = "http://localhost:5173";
@@ -41,6 +42,8 @@ export function buildApp(options: { logger?: boolean } = {}): FastifyInstance {
   fastify.register(growthStandardsRoutes, {
     prefix: "/children/:childId/growth-standards",
   });
+  // 画像アップロード用の署名付き URL 発行（用途共通）
+  fastify.register(uploadsRoutes, { prefix: "/uploads" });
 
   return fastify;
 }
