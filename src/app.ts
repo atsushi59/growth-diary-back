@@ -20,7 +20,11 @@ export function buildApp(options: { logger?: boolean } = {}): FastifyInstance {
 
   // CORS は認証フック・ルートより先に登録する。
   // プリフライト（OPTIONS）が認証で弾かれず、エラー応答にも CORS ヘッダが付くようにするため。
-  fastify.register(cors, { origin: LOCAL_FRONTEND_ORIGIN });
+  // @fastify/cors の methods 既定は GET,HEAD,POST のみなので、更新系を明示的に許可する。
+  fastify.register(cors, {
+    origin: LOCAL_FRONTEND_ORIGIN,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+  });
 
   // 認証フックをグローバル適用（運用系を除く全エンドポイントをログイン必須にする）
   registerAuth(fastify);
