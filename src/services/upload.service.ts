@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { IMAGES_BUCKET } from "../config/s3.js";
 import { s3 } from "../plugins/s3.js";
@@ -16,6 +20,9 @@ type AllowedImageType = keyof typeof ALLOWED_IMAGE_TYPES;
 
 // 署名付きアップロード URL の有効期限（秒）。短くして悪用の窓を狭める。
 const UPLOAD_URL_EXPIRES_IN = 300;
+
+// 署名付き表示（GET）URL の有効期限（秒）。画面表示用に少し長め（15分）。
+const VIEW_URL_EXPIRES_IN = 900;
 
 export type ImageUploadUrl = {
   uploadUrl: string;
@@ -60,6 +67,16 @@ export async function createImageUploadUrl(
   });
 
   return { uploadUrl, key, expiresIn: UPLOAD_URL_EXPIRES_IN };
+}
+
+/**
+ * 画像表示用の署名付き GET URL を発行する（非公開バケットの画像をブラウザで表示するため）。
+ * @param key 表示する S3 オブジェクトキー
+ * @returns 一時的に閲覧できる署名付き URL
+ */
+export async function createImageViewUrl(key: string): Promise<string> {
+  const command = new GetObjectCommand({ Bucket: IMAGES_BUCKET, Key: key });
+  return getSignedUrl(s3, command, { expiresIn: VIEW_URL_EXPIRES_IN });
 }
 
 /**

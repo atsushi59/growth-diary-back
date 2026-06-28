@@ -1,5 +1,6 @@
 import * as childrenRepository from "../repositories/children.repository.js";
 import * as growthRepository from "../repositories/growth.repository.js";
+import type { Child } from "../types/models.js";
 import * as uploadService from "./upload.service.js";
 
 /**
@@ -23,13 +24,45 @@ export type ChildInput = {
   image?: string; // S3 オブジェクトキー（任意）。#70 でアップロードした画像を紐づける。
 };
 
+// API レスポンスの子供。保存している image(キー)に加え、表示用の署名付き URL を都度付与する。
+// 画像が無い・発行に失敗した場合は imageUrl を null にする。
+export type ChildResponse = Child & { imageUrl: string | null };
+
+/**
+ * 子供に表示用の署名付き画像 URL を付与する（image が無ければ imageUrl は null）。
+ * バケットは非公開なので、表示にはその都度発行する署名付き GET URL が要る。
+ * @param child 付与対象の子供
+ * @returns imageUrl を付けた子供
+ */
+async function attachImageUrl(child: Child): Promise<ChildResponse> {
+  if (!child.image) return { ...child, imageUrl: null };
+  // best-effort: 署名 URL の発行が失敗しても、その子（や一覧全体）を落とさず imageUrl=null で返す
+  try {
+    const imageUrl = await uploadService.createImageViewUrl(child.image);
+    return { ...child, imageUrl };
+  } catch (error) {
+    console.error(`表示用URLの発行に失敗しました: ${child.image}`, error);
+    return { ...child, imageUrl: null };
+  }
+}
+
+/**
+ * 子供の配列それぞれに表示用の署名付き画像 URL を付与する。
+ * @param children 付与対象の子供配列
+ * @returns imageUrl を付けた子供配列
+ */
+function attachImageUrls(children: Child[]): Promise<ChildResponse[]> {
+  return Promise.all(children.map(attachImageUrl));
+}
+
 /**
  * 本人の子供を全件取得する。
  * @param userId 認証ユーザーの cognitoSub
  * @returns 子供の配列
  */
-export function listChildren(userId: string) {
-  return childrenRepository.findChildrenByUser(userId);
+export async function listChildren(userId: string) {
+  const children = await childrenRepository.findChildrenByUser(userId);
+  return attachImageUrls(children);
 }
 
 /**
@@ -38,8 +71,9 @@ export function listChildren(userId: string) {
  * @param userId 認証ユーザーの cognitoSub
  * @returns 子供。無ければ null
  */
-export function getChild(childId: string, userId: string) {
-  return childrenRepository.findChildByIdForUser(childId, userId);
+export async function getChild(childId: string, userId: string) {
+  const child = await childrenRepository.findChildByIdForUser(childId, userId);
+  return child ? attachImageUrl(child) : null;
 }
 
 /**
@@ -48,14 +82,15 @@ export function getChild(childId: string, userId: string) {
  * @param input 作成する子供の入力
  * @returns 作成した子供
  */
-export function createChild(userId: string, input: ChildInput) {
-  return childrenRepository.createChild({
+export async function createChild(userId: string, input: ChildInput) {
+  const child = await childrenRepository.createChild({
     userId,
     name: input.name,
     birthday: input.birthday,
     gender: input.gender,
     image: input.image,
   });
+  return attachImageUrl(child);
 }
 
 /**
@@ -83,7 +118,7 @@ export async function replaceChild(
   if (previousImage && previousImage !== child.image) {
     await deleteImageIfPresent(previousImage);
   }
-  return child;
+  return attachImageUrl(child);
 }
 
 /**
@@ -121,7 +156,7 @@ export async function updateChild(
   if (previousImage && previousImage !== child.image) {
     await deleteImageIfPresent(previousImage);
   }
-  return child;
+  return attachImageUrl(child);
 }
 
 /**
