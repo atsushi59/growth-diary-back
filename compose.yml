@@ -16,6 +16,10 @@ services:
       CHILDREN_TABLE: Children
       GROWTH_TABLE: Growth
       GROWTH_STANDARDS_TABLE: GrowthStandards
+      # WSL/Docker のマウント越しは inotify が届かず tsx watch が変更を拾えないため、
+      # chokidar をポーリング監視にしてホットリロードを効かせる（interval はCPU負荷とのバランスで 300ms）。
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "300"
     depends_on:
       - dynamodb-local
     volumes:
