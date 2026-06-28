@@ -136,20 +136,25 @@ describe("children CRUD API", () => {
       expect(created.statusCode).toBe(201);
       expect(created.json().image).toBe(key);
 
+      // 表示用の署名付き GET URL（imageUrl）も付与される
+      expect(created.json().imageUrl).toContain("X-Amz-Signature");
+
       const got = await app.inject({
         method: "GET",
         url: `/children/${created.json().id}`,
       });
       expect(got.json().image).toBe(key);
+      expect(got.json().imageUrl).toContain("X-Amz-Signature");
     });
 
-    it("image 未指定なら image は持たない", async () => {
+    it("image 未指定なら image は無く imageUrl は null", async () => {
       const child = await createChild({
         name: "J",
         birthday: "2024-01-01",
         gender: "female",
       });
       expect(child.image).toBeUndefined();
+      expect(child.imageUrl).toBeNull();
     });
 
     it("PATCH で image だけ後付けできる", async () => {

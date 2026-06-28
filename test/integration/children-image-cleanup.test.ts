@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 // S3 への実通信を避けるため upload.service をモックする（DynamoDB は実 Local を使う）。
 vi.mock("../../src/services/upload.service.js", () => ({
   deleteImage: vi.fn().mockResolvedValue(undefined),
+  createImageViewUrl: vi.fn().mockResolvedValue("https://example.test/view-url"),
   createImageUploadUrl: vi.fn(),
   isAllowedImageType: vi.fn(),
 }));
@@ -106,5 +107,26 @@ describe("子供の画像 S3 後始末", () => {
     });
 
     expect(uploadService.deleteImage).not.toHaveBeenCalled();
+  });
+
+  it("表示用URLの発行が失敗しても一覧は落とさず imageUrl 無しで返す（best-effort）", async () => {
+    const child = await createChild({
+      name: "E",
+      birthday: "2024-01-01",
+      gender: "male",
+      image: "children/e/x.jpg",
+    });
+
+    // 次の createImageViewUrl 呼び出しだけ失敗させる
+    vi.mocked(uploadService.createImageViewUrl).mockRejectedValueOnce(
+      new Error("presign failed")
+    );
+
+    const res = await app.inject({ method: "GET", url: "/children" });
+
+    expect(res.statusCode).toBe(200);
+    const target = res.json().find((c: { id: string }) => c.id === child.id);
+    expect(target.image).toBe("children/e/x.jpg");
+    expect(target.imageUrl).toBeNull();
   });
 });
