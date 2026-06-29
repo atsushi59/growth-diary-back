@@ -10,4 +10,9 @@ resolve_s3 = true
 # Lambda 実行ロール等の IAM 作成を許可する
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
-parameter_overrides = "AuthMode=dummy"
+# 本番デプロイのパラメータ。実 Cognito 認証を有効化し、CORS / S3 を Amplify Hosting のオリジンに合わせる。
+parameter_overrides = [
+    "AuthMode=cognito",
+    "FrontendOrigins=http://localhost:5173,https://main.dpjgua90aliia.amplifyapp.com",
+    "AllowedOrigin=https://main.dpjgua90aliia.amplifyapp.com",
+]
