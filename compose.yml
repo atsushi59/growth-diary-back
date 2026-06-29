@@ -20,13 +20,26 @@ services:
       # chokidar をポーリング監視にしてホットリロードを効かせる（interval はCPU負荷とのバランスで 300ms）。
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "300"
+      # AIボットの中継先（Python サービス）。compose 内はサービス名で解決する。
+      AI_SERVICE_URL: "http://ai-service:8000"
     depends_on:
       - dynamodb-local
+      - ai-service
     volumes:
       # ソースをマウントしてホットリロード（tsx watch が変更を検知）
       - .:/app
       # node_modules はコンテナ内のものを使う（ホストで上書きしない）
       - /app/node_modules
+
+  # AIボットサービス（Python / FastAPI + Gemini）。Node からのみ呼ばれる内部サービス。
+  ai-service:
+    build: ./ai-service
+    ports:
+      # ホストから直接デバッグしたいとき用（8000 は dynamodb-local が使うので 8001 に割当）
+      - "8001:8000"
+    environment:
+      # Gemini API キー。growth-diary-back/.env に GOOGLE_GEMINI_API_KEY を設定すると compose が読む。
+      GOOGLE_GEMINI_API_KEY: ${GOOGLE_GEMINI_API_KEY:-}
 
   dynamodb-local:
     image: amazon/dynamodb-local:latest

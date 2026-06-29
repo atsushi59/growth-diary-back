@@ -1,0 +1,8 @@
+# Python 仮想環境・キャッシュ
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# 環境変数（API キーを含むため push しない）
+.env
