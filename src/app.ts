@@ -6,8 +6,20 @@ import growthRoutes from "./routes/growth.route.js";
 import growthStandardsRoutes from "./routes/growthStandards.route.js";
 import uploadsRoutes from "./routes/uploads.route.js";
 
-// ローカル開発のフロント（Vite）のオリジン。本番ドメインの許可は #25 で対応する。
-const LOCAL_FRONTEND_ORIGIN = "http://localhost:5173";
+// FRONTEND_ORIGINS（カンマ区切り）が未設定のときに使うローカル開発のフロント（Vite）オリジン。
+const DEFAULT_FRONTEND_ORIGIN = "http://localhost:5173";
+
+/**
+ * CORS で許可するフロントのオリジン一覧を返す。
+ * 本番は FRONTEND_ORIGINS（カンマ区切り）で Amplify ドメイン等を渡す。未設定ならローカル開発用。
+ * @returns 許可オリジンの配列
+ */
+function getAllowedOrigins(): string[] {
+  return (process.env.FRONTEND_ORIGINS ?? DEFAULT_FRONTEND_ORIGIN)
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
 
 /**
  * Fastify アプリを組み立てて返す（listen はしない）。
@@ -22,7 +34,7 @@ export function buildApp(options: { logger?: boolean } = {}): FastifyInstance {
   // プリフライト（OPTIONS）が認証で弾かれず、エラー応答にも CORS ヘッダが付くようにするため。
   // @fastify/cors の methods 既定は GET,HEAD,POST のみなので、更新系を明示的に許可する。
   fastify.register(cors, {
-    origin: LOCAL_FRONTEND_ORIGIN,
+    origin: getAllowedOrigins(),
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
   });
 

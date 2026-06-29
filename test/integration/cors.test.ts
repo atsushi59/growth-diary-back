@@ -29,4 +29,27 @@ describe("CORS プリフライト", () => {
     expect(allowMethods).toContain("PUT");
     expect(allowMethods).toContain("DELETE");
   });
+
+  it("FRONTEND_ORIGINS で指定した追加オリジンを許可する", async () => {
+    process.env.FRONTEND_ORIGINS =
+      "http://localhost:5173,https://example.amplifyapp.com";
+    const configured = buildApp({ logger: false });
+    await configured.ready();
+
+    const res = await configured.inject({
+      method: "OPTIONS",
+      url: "/children/x",
+      headers: {
+        origin: "https://example.amplifyapp.com",
+        "access-control-request-method": "GET",
+      },
+    });
+
+    expect(res.headers["access-control-allow-origin"]).toBe(
+      "https://example.amplifyapp.com"
+    );
+
+    await configured.close();
+    delete process.env.FRONTEND_ORIGINS;
+  });
 });

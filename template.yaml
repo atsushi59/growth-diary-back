@@ -11,6 +11,10 @@ Parameters:
     Type: String
     Default: http://localhost:5173
     Description: Allowed origin for the images bucket CORS (frontend direct upload)
+  FrontendOrigins:
+    Type: String
+    Default: http://localhost:5173
+    Description: Comma-separated allowed origins for the API CORS (e.g. https://xxx.amplifyapp.com)
 
 Resources:
   # ------------------------------------------------------------
@@ -129,6 +133,8 @@ Resources:
         Variables:
           AUTH_MODE:
             Ref: AuthMode
+          FRONTEND_ORIGINS:
+            Ref: FrontendOrigins
           USERS_TABLE:
             Ref: UsersTable
           CHILDREN_TABLE:
