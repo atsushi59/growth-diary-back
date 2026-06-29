@@ -10,5 +10,5 @@
     "rootDir": ".",
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*.ts", "generated/**/*.ts"]
+  "include": ["src/**/*.ts", "generated/**/*.ts", "scripts/**/*.ts"]
 }
