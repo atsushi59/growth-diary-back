@@ -27,3 +27,9 @@ npm-debug.log*
 
 # Docker Compose のローカル専用オーバーライド（本番 Cognito 検証など個人環境用）
 compose.override.yml
+
+# Python（ai-service）の仮想環境・キャッシュ
+venv/
+.venv/
+__pycache__/
+*.pyc

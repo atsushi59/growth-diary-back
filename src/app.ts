@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import { registerAuth } from "./plugins/auth.js";
+import chatRoutes from "./routes/chat.route.js";
 import childrenRoutes from "./routes/children.route.js";
 import growthRoutes from "./routes/growth.route.js";
 import growthStandardsRoutes from "./routes/growthStandards.route.js";
@@ -60,6 +61,8 @@ export function buildApp(options: { logger?: boolean } = {}): FastifyInstance {
   });
   // 画像アップロード用の署名付き URL 発行（用途共通）
   fastify.register(uploadsRoutes, { prefix: "/uploads" });
+  // AIボット（Python サービスへ中継）
+  fastify.register(chatRoutes, { prefix: "/chat" });
 
   return fastify;
 }
