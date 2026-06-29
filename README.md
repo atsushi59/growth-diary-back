@@ -53,14 +53,24 @@ flowchart LR
 
 ## DB 構成（DynamoDB）
 
-### 実装済み
+1エンティティ1テーブル。キーは PK=パーティションキー / SK=ソートキー。`GrowthStandards` は他と関連を持たない発育曲線マスタ。
 
-1エンティティ1テーブル。`GrowthStandards` は他と関連を持たない発育曲線マスタ。キーは PK=パーティションキー / SK=ソートキー。
+**実装済み**: `Users` / `Children` / `Growth` / `GrowthStandards`。それ以外（`Albums` / `VaccineMaster` / `VaccinationRecords` / `FoodMaster` / `FoodRecords` / `RecipePosts` / `RecipeComments` / `RecipeLikes`）は**未実装の設計案**で、PK/SK は実装時に最終確定する。
 
 ```mermaid
 erDiagram
   Users ||--o{ Children : "owns (userId)"
   Children ||--o{ Growth : "has (childId)"
+  Users ||--o{ RecipePosts : "posts (userId)"
+  Users ||--o{ RecipeComments : "writes (userId)"
+  Users ||--o{ RecipeLikes : "likes (userId)"
+  Children ||--o{ Albums : "has (childId)"
+  Children ||--o{ VaccinationRecords : "has (childId)"
+  Children ||--o{ FoodRecords : "has (childId)"
+  VaccineMaster ||--o{ VaccinationRecords : "referenced by"
+  FoodMaster ||--o{ FoodRecords : "referenced by"
+  RecipePosts ||--o{ RecipeComments : "has (postId)"
+  RecipePosts ||--o{ RecipeLikes : "has (postId)"
 
   Users {
     string cognitoSub PK "パーティションキー"
@@ -93,34 +103,15 @@ erDiagram
     number min
     number max
   }
-```
-
-- DynamoDB には FK 制約が無いため、子供削除時の成長記録カスケード削除はアプリ側で行う。
-- 子供削除・画像差し替え時は、紐づく S3 画像もアプリがベストエフォートで削除する。
-
-
-```mermaid
-erDiagram
-  Users ||--o{ RecipePosts : "posts (userId)"
-  Users ||--o{ RecipeComments : "writes (userId)"
-  Users ||--o{ RecipeLikes : "likes (userId)"
-  Children ||--o{ Albums : "has (childId)"
-  Children ||--o{ VaccinationRecords : "has (childId)"
-  Children ||--o{ FoodRecords : "has (childId)"
-  VaccineMaster ||--o{ VaccinationRecords : "referenced by"
-  FoodMaster ||--o{ FoodRecords : "referenced by"
-  RecipePosts ||--o{ RecipeComments : "has (postId)"
-  RecipePosts ||--o{ RecipeLikes : "has (postId)"
-
   Albums {
-    string childId PK "パーティションキー"
+    string childId PK "パーティションキー（未実装）"
     string id "ソートキー(SK)"
     string image "S3キー"
     string message "任意"
     string createdAt
   }
   VaccineMaster {
-    string id PK "パーティションキー"
+    string id PK "パーティションキー（未実装）"
     string name
     number doseNumber
     number minStartMonth
@@ -129,13 +120,13 @@ erDiagram
     string category
   }
   VaccinationRecords {
-    string childId PK "パーティションキー"
+    string childId PK "パーティションキー（未実装）"
     string id "ソートキー(SK)"
     string vaccineId "VaccineMaster 参照"
     string vaccinatedAt
   }
   FoodMaster {
-    string id PK "パーティションキー"
+    string id PK "パーティションキー（未実装）"
     string name
     number startMonth
     string stage
@@ -143,14 +134,14 @@ erDiagram
     string note "任意"
   }
   FoodRecords {
-    string childId PK "パーティションキー"
+    string childId PK "パーティションキー（未実装）"
     string id "ソートキー(SK)"
     string foodId "FoodMaster 参照"
     boolean hasEaten
     string eatenAt "任意"
   }
   RecipePosts {
-    string id PK "パーティションキー"
+    string id PK "パーティションキー（未実装）"
     string userId "投稿者(GSI候補)"
     string title
     string description "任意"
@@ -160,7 +151,7 @@ erDiagram
     string updatedAt
   }
   RecipeComments {
-    string postId PK "パーティションキー"
+    string postId PK "パーティションキー（未実装）"
     string id "ソートキー(SK)"
     string userId "投稿者"
     string comment
@@ -168,13 +159,15 @@ erDiagram
     string updatedAt
   }
   RecipeLikes {
-    string postId PK "パーティションキー"
+    string postId PK "パーティションキー（未実装）"
     string userId "ソートキー(SK)"
     string createdAt
   }
 ```
 
-> `RecipeLikes` は PK=postId / SK=userId の複合キーで同一投稿への重複いいねを自然に防ぐ想定。画像（`Albums.image` / `RecipePosts.image`）は既存の S3 + 署名付き URL の仕組みを共通利用する想定。
+- DynamoDB には FK 制約が無いため、子供削除時の成長記録カスケード削除はアプリ側で行う。
+- 子供削除・画像差し替え時は、紐づく S3 画像もアプリがベストエフォートで削除する。
+- `RecipeLikes`（未実装）は PK=postId / SK=userId の複合キーで同一投稿への重複いいねを自然に防ぐ想定。画像（`Albums.image` / `RecipePosts.image`）は既存の S3 + 署名付き URL を共通利用する想定。
 
 ## ローカル開発のセットアップ
 
